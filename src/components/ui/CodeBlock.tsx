@@ -185,7 +185,7 @@ export function CodeBlockGutter({ className }: { className?: string }) {
     <div
       ref={gutterRef}
       className={clsx(
-        "flex w-12 shrink-0 flex-col items-end gap-2 overflow-hidden border-border-primary border-r bg-bg-surface px-3 py-4",
+        "flex w-12 shrink-0 flex-col items-end overflow-hidden border-border-primary border-r bg-bg-surface px-3 py-4",
         className,
       )}
     >
