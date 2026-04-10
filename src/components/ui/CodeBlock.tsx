@@ -15,6 +15,7 @@ interface CodeBlockContextValue {
   lineCount: number;
   textareaRef: React.RefObject<HTMLTextAreaElement | null>;
   highlightRef: React.RefObject<HTMLDivElement | null>;
+  gutterRef: React.RefObject<HTMLDivElement | null>;
   language: string;
   setLanguage: (lang: string) => void;
   autoDetect: boolean;
@@ -48,6 +49,7 @@ export function CodeBlockRoot({
   const [autoDetect, setAutoDetect] = React.useState(true);
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
   const highlightRef = React.useRef<HTMLDivElement>(null);
+  const gutterRef = React.useRef<HTMLDivElement>(null);
 
   const code = codeProp !== undefined ? codeProp : internalCode;
   const lineCount = Math.max(code.split("\n").length, 1);
@@ -68,6 +70,7 @@ export function CodeBlockRoot({
         lineCount,
         textareaRef,
         highlightRef,
+        gutterRef,
         language,
         setLanguage,
         autoDetect,
@@ -177,11 +180,12 @@ export function CodeBlockContent({
 }
 
 export function CodeBlockGutter({ className }: { className?: string }) {
-  const { lineCount } = useCodeBlock();
+  const { lineCount, gutterRef } = useCodeBlock();
   return (
     <div
+      ref={gutterRef}
       className={clsx(
-        "flex w-12 shrink-0 flex-col items-end gap-2 border-border-primary border-r bg-bg-surface px-3 py-4",
+        "flex w-12 shrink-0 flex-col items-end gap-2 overflow-hidden border-border-primary border-r bg-bg-surface px-3 py-4",
         className,
       )}
     >
@@ -220,6 +224,7 @@ export function CodeBlockEditor({
     setCode,
     textareaRef,
     highlightRef,
+    gutterRef,
     code: contextCode,
     language: contextLanguage,
     setLanguage,
@@ -298,9 +303,17 @@ export function CodeBlockEditor({
   };
 
   const handleScroll = () => {
-    if (textareaRef.current && highlightRef.current) {
-      highlightRef.current.scrollTop = textareaRef.current.scrollTop;
-      highlightRef.current.scrollLeft = textareaRef.current.scrollLeft;
+    if (textareaRef.current) {
+      const scrollTop = textareaRef.current.scrollTop;
+      const scrollLeft = textareaRef.current.scrollLeft;
+      
+      if (highlightRef.current) {
+        highlightRef.current.scrollTop = scrollTop;
+        highlightRef.current.scrollLeft = scrollLeft;
+      }
+      if (gutterRef.current) {
+        gutterRef.current.scrollTop = scrollTop;
+      }
     }
   };
 
