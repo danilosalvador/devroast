@@ -102,7 +102,14 @@ export function HomePage() {
             {"// maximum sarcasm enabled"}
           </span>
         </div>
-        <Button variant="primary" size="default" disabled={!code.trim()}>
+        <Button
+          variant="primary"
+          size="default"
+          disabled={!code.trim()}
+          onClick={() => {
+            window.location.hash = "#results/550e8400-e29b-41d4-a716-446655440000";
+          }}
+        >
           $ roast_my_code
         </Button>
       </div>
