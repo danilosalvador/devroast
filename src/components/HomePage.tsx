@@ -1,6 +1,9 @@
 import { useState } from "react";
+import NumberFlow from "@number-flow/react";
+import { trpc } from "../lib/trpc";
 import { Button } from "./ui/Button";
 import { CodeBlock } from "./ui/CodeBlock";
+import { Skeleton } from "./ui/Skeleton";
 import { Toggle } from "./ui/Toggle";
 
 const SAMPLE_CODE = `function calculateTotal(items) {
@@ -55,6 +58,7 @@ const LEADERBOARD_DATA = [
 export function HomePage() {
   const [roastMode, setRoastMode] = useState(true);
   const [code, setCode] = useState(SAMPLE_CODE);
+  const { data: metrics, isLoading } = trpc.roast.getMetrics.useQuery();
 
   return (
     <main className="flex w-full flex-1 flex-col items-center gap-8 px-10 pt-20 pb-0">
@@ -116,13 +120,34 @@ export function HomePage() {
 
       {/* Footer Stats */}
       <div className="flex items-center justify-center gap-6">
-        <span className="font-secondary text-[12px] text-text-tertiary">
-          2,847 codes roasted
-        </span>
+        <div className="flex items-center gap-1.5 font-secondary text-[12px] text-text-tertiary">
+          {isLoading ? (
+            <Skeleton className="h-4 w-12" />
+          ) : (
+            <NumberFlow
+              value={metrics?.total ?? 0}
+              className="font-bold text-text-primary"
+            />
+          )}
+          codes roasted
+        </div>
         <span className="font-primary text-[12px] text-text-tertiary">·</span>
-        <span className="font-secondary text-[12px] text-text-tertiary">
-          avg score: 4.2/10
-        </span>
+        <div className="flex items-center gap-1.5 font-secondary text-[12px] text-text-tertiary">
+          avg score:{" "}
+          {isLoading ? (
+            <Skeleton className="h-4 w-8" />
+          ) : (
+            <NumberFlow
+              value={metrics?.averageScore ?? 0}
+              format={{
+                minimumFractionDigits: 1,
+                maximumFractionDigits: 1,
+              }}
+              className="font-bold text-text-primary"
+            />
+          )}
+          / 10
+        </div>
       </div>
 
       {/* Spacer */}
