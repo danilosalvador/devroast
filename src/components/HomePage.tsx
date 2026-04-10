@@ -80,14 +80,11 @@ export function HomePage() {
         <CodeBlock.Root className="h-[360px]">
           <CodeBlock.Header>
             <CodeBlock.HeaderDots />
+            <CodeBlock.LanguagePicker />
           </CodeBlock.Header>
           <CodeBlock.Content>
             <CodeBlock.Gutter />
-            <CodeBlock.Editor
-              value={code}
-              onChangeValue={setCode}
-              language="javascript"
-            />
+            <CodeBlock.Editor value={code} onChangeValue={setCode} />
           </CodeBlock.Content>
         </CodeBlock.Root>
       </div>

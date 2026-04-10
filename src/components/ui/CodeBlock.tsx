@@ -1,17 +1,23 @@
 import { clsx } from "clsx";
 import * as React from "react";
 import { codeToHtml } from "shiki";
+import { detectLanguage, POPULAR_LANGUAGES } from "../../lib/language-detector";
 
-export interface CodeBlockRootProps extends React.ComponentProps<"div"> {}
+export interface CodeBlockRootProps extends React.ComponentProps<"div"> {
+  initialLanguage?: string;
+  onLanguageChange?: (lang: string) => void;
+}
 
 interface CodeBlockContextValue {
   code: string;
   setCode: (code: string) => void;
   lineCount: number;
-  highlightedHtml: string;
   textareaRef: React.RefObject<HTMLTextAreaElement | null>;
   highlightRef: React.RefObject<HTMLDivElement | null>;
   language: string;
+  setLanguage: (lang: string) => void;
+  autoDetect: boolean;
+  setAutoDetect: (auto: boolean) => void;
 }
 
 const CodeBlockContext = React.createContext<CodeBlockContextValue | null>(
@@ -31,21 +37,25 @@ function useCodeBlock() {
 export function CodeBlockRoot({
   className,
   children,
+  initialLanguage = "javascript",
+  onLanguageChange,
   ...props
 }: CodeBlockRootProps) {
-  // Since composition means we might have Editor as a child,
-  // we'll need a way to track state here or let the user pass it.
-  // To keep it simple but modular, we'll store the internal state or allow controlled mode.
-  // But wait, if Editor is a child, it should probably be controlled by the user's state.
-  // We'll provide a local state that can be synced if needed.
-
   const [code, setCode] = React.useState("");
-  const [highlightedHtml, _setHighlightedHtml] = React.useState("");
+  const [language, setLanguageState] = React.useState(initialLanguage);
+  const [autoDetect, setAutoDetect] = React.useState(true);
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
   const highlightRef = React.useRef<HTMLDivElement>(null);
-  const [language, _setLanguage] = React.useState("javascript");
 
   const lineCount = Math.max(code.split("\n").length, 1);
+
+  const setLanguage = React.useCallback(
+    (lang: string) => {
+      setLanguageState(lang);
+      onLanguageChange?.(lang);
+    },
+    [onLanguageChange],
+  );
 
   return (
     <CodeBlockContext.Provider
@@ -53,10 +63,12 @@ export function CodeBlockRoot({
         code,
         setCode,
         lineCount,
-        highlightedHtml,
         textareaRef,
         highlightRef,
         language,
+        setLanguage,
+        autoDetect,
+        setAutoDetect,
       }}
     >
       <div
@@ -79,7 +91,7 @@ export function CodeBlockHeader({
   return (
     <div
       className={clsx(
-        "flex h-10 w-full items-center gap-3 border-border-primary border-b px-4",
+        "flex h-10 w-full items-center gap-4 border-border-primary border-b px-4",
         className,
       )}
       {...props}
@@ -89,7 +101,7 @@ export function CodeBlockHeader({
 
 export function CodeBlockHeaderDots() {
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex shrink-0 items-center gap-2">
       <div className="h-3 w-3 rounded-full bg-[#EF4444]" />
       <div className="h-3 w-3 rounded-full bg-[#F59E0B]" />
       <div className="h-3 w-3 rounded-full bg-[#10B981]" />
@@ -109,6 +121,43 @@ export function CodeBlockHeaderTitle({
       )}
       {...props}
     />
+  );
+}
+
+export function CodeBlockLanguagePicker() {
+  const { language, setLanguage, setAutoDetect, autoDetect } = useCodeBlock();
+
+  const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value;
+    if (value === "auto") {
+      setAutoDetect(true);
+    } else {
+      setAutoDetect(false);
+      setLanguage(value);
+    }
+  };
+
+  return (
+    <div className="flex flex-1 justify-end">
+      <select
+        value={autoDetect ? "auto" : language}
+        onChange={handleChange}
+        className="cursor-pointer bg-transparent font-primary text-[12px] text-text-tertiary outline-none transition-colors hover:text-text-primary"
+      >
+        <option value="auto" className="bg-bg-surface text-text-primary">
+          Auto Detect
+        </option>
+        {POPULAR_LANGUAGES.map((lang: { id: string; name: string }) => (
+          <option
+            key={lang.id}
+            value={lang.id}
+            className="bg-bg-surface text-text-primary"
+          >
+            {lang.name}
+          </option>
+        ))}
+      </select>
+    </div>
   );
 }
 
@@ -158,7 +207,7 @@ export interface CodeBlockEditorProps
 export function CodeBlockEditor({
   value,
   onChangeValue,
-  language = "javascript",
+  language: langProp,
   className,
   placeholder = "// paste your code here...",
   readOnly,
@@ -169,8 +218,16 @@ export function CodeBlockEditor({
     textareaRef,
     highlightRef,
     code: internalCode,
+    language: contextLanguage,
+    setLanguage,
+    autoDetect,
   } = useCodeBlock();
+
   const [highlightedHtml, setHighlightedHtml] = React.useState("");
+
+  // Current state values
+  const currentCode = value !== undefined ? value : internalCode;
+  const currentLanguage = langProp || contextLanguage;
 
   // Sync with value prop if provided (controlled)
   React.useEffect(() => {
@@ -179,9 +236,21 @@ export function CodeBlockEditor({
     }
   }, [value, setCode]);
 
-  const currentCode = value !== undefined ? value : internalCode;
+  // Real-time language detection with debounce
+  React.useEffect(() => {
+    if (!autoDetect || !currentCode?.trim()) return;
 
-  // Highlight effect
+    const timeout = setTimeout(() => {
+      const detected = detectLanguage(currentCode);
+      if (detected !== contextLanguage) {
+        setLanguage(detected);
+      }
+    }, 300);
+
+    return () => clearTimeout(timeout);
+  }, [currentCode, autoDetect, contextLanguage, setLanguage]);
+
+  // Syntax Highlight effect
   React.useEffect(() => {
     let cancelled = false;
     async function highlight() {
@@ -191,7 +260,7 @@ export function CodeBlockEditor({
       }
       try {
         const result = await codeToHtml(currentCode, {
-          lang: language,
+          lang: currentLanguage,
           theme: "vesper",
         });
         if (!cancelled) setHighlightedHtml(result);
@@ -203,12 +272,33 @@ export function CodeBlockEditor({
     return () => {
       cancelled = true;
     };
-  }, [currentCode, language]);
+  }, [currentCode, currentLanguage]);
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const val = e.target.value;
     if (value === undefined) setCode(val);
     onChangeValue?.(val);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Tab") {
+      e.preventDefault();
+      const textarea = textareaRef.current;
+      if (!textarea) return;
+
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+
+      const newValue = `${currentCode.substring(0, start)}  ${currentCode.substring(end)}`;
+
+      if (value === undefined) setCode(newValue);
+      onChangeValue?.(newValue);
+
+      // Set cursor position after update
+      setTimeout(() => {
+        textarea.selectionStart = textarea.selectionEnd = start + 2;
+      }, 0);
+    }
   };
 
   const handleScroll = () => {
@@ -235,6 +325,7 @@ export function CodeBlockEditor({
         ref={textareaRef}
         value={currentCode}
         onChange={handleChange}
+        onKeyDown={handleKeyDown}
         onScroll={handleScroll}
         readOnly={readOnly}
         placeholder={placeholder}
@@ -255,6 +346,7 @@ export const CodeBlock = {
   Header: CodeBlockHeader,
   HeaderDots: CodeBlockHeaderDots,
   HeaderTitle: CodeBlockHeaderTitle,
+  LanguagePicker: CodeBlockLanguagePicker,
   Content: CodeBlockContent,
   Gutter: CodeBlockGutter,
   Editor: CodeBlockEditor,

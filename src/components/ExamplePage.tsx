@@ -174,11 +174,11 @@ export function ExamplePage() {
           <CodeBlock.Header>
             <CodeBlock.HeaderDots />
             <CodeBlock.HeaderTitle>calculate.js</CodeBlock.HeaderTitle>
+            <CodeBlock.LanguagePicker />
           </CodeBlock.Header>
           <CodeBlock.Content>
             <CodeBlock.Gutter />
             <CodeBlock.Editor
-              language="javascript"
               value={`function calculateTotal(price, tax) {
   var total = price + tax; // using var
   return total;
