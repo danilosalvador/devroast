@@ -170,7 +170,12 @@ export function ExamplePage() {
         <h2 className="border-border-primary border-b pb-2 font-medium font-primary text-lg text-text-primary">
           Code Block
         </h2>
-        <CodeBlock.Root>
+        <CodeBlock.Root
+          code={`function calculateTotal(price, tax) {
+  var total = price + tax; // using var
+  return total;
+}`}
+        >
           <CodeBlock.Header>
             <CodeBlock.HeaderDots />
             <CodeBlock.HeaderTitle>calculate.js</CodeBlock.HeaderTitle>

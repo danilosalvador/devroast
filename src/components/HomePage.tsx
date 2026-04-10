@@ -77,7 +77,7 @@ export function HomePage() {
 
       {/* Code Editor */}
       <div className="w-full max-w-[780px]">
-        <CodeBlock.Root className="h-[360px]">
+        <CodeBlock.Root className="h-[360px]" code={code}>
           <CodeBlock.Header>
             <CodeBlock.HeaderDots />
             <CodeBlock.LanguagePicker />

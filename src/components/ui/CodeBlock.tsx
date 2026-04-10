@@ -6,6 +6,7 @@ import { detectLanguage, POPULAR_LANGUAGES } from "../../lib/language-detector";
 export interface CodeBlockRootProps extends React.ComponentProps<"div"> {
   initialLanguage?: string;
   onLanguageChange?: (lang: string) => void;
+  code?: string;
 }
 
 interface CodeBlockContextValue {
@@ -39,14 +40,16 @@ export function CodeBlockRoot({
   children,
   initialLanguage = "javascript",
   onLanguageChange,
+  code: codeProp,
   ...props
 }: CodeBlockRootProps) {
-  const [code, setCode] = React.useState("");
+  const [internalCode, setInternalCode] = React.useState("");
   const [language, setLanguageState] = React.useState(initialLanguage);
   const [autoDetect, setAutoDetect] = React.useState(true);
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
   const highlightRef = React.useRef<HTMLDivElement>(null);
 
+  const code = codeProp !== undefined ? codeProp : internalCode;
   const lineCount = Math.max(code.split("\n").length, 1);
 
   const setLanguage = React.useCallback(
@@ -61,7 +64,7 @@ export function CodeBlockRoot({
     <CodeBlockContext.Provider
       value={{
         code,
-        setCode,
+        setCode: setInternalCode,
         lineCount,
         textareaRef,
         highlightRef,
@@ -217,7 +220,7 @@ export function CodeBlockEditor({
     setCode,
     textareaRef,
     highlightRef,
-    code: internalCode,
+    code: contextCode,
     language: contextLanguage,
     setLanguage,
     autoDetect,
@@ -226,15 +229,8 @@ export function CodeBlockEditor({
   const [highlightedHtml, setHighlightedHtml] = React.useState("");
 
   // Current state values
-  const currentCode = value !== undefined ? value : internalCode;
+  const currentCode = value !== undefined ? value : contextCode;
   const currentLanguage = langProp || contextLanguage;
-
-  // Sync with value prop if provided (controlled)
-  React.useEffect(() => {
-    if (value !== undefined) {
-      setCode(value);
-    }
-  }, [value, setCode]);
 
   // Real-time language detection with debounce
   React.useEffect(() => {
